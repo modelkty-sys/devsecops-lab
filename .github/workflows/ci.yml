@@ -36,7 +36,7 @@ jobs:
       - name: AWS 자격증명 획득 (OIDC 키리스)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: arn:aws:iam://388260577080:role/devsecops-gha-deploy
           aws-region: ap-northeast-2
       - name: 누구로 접속되었는지 확인
         run: aws sts get-caller-identity
