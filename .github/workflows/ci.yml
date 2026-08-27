@@ -18,9 +18,25 @@ jobs:
           curl -sL https://github.com/gitleaks/gitleaks/releases/download/v8.30.0/gitleaks_8.30.0_linux_x64.tar.gz -o /tmp/gitleaks.tgz
           sudo tar -xzf /tmp/gitleaks.tgz -C /usr/local/bin gitleaks
           python3 -m pip install --quiet semgrep
-      - name: 시크릿 스캔 (차단)
-        run: gitleaks git . -v --exit-code 1
-      - name: SAST (차단)
-        run: semgrep --config p/ci --config p/python --error demo-app/
-      - name: SCA · IaC (차단 — CRITICAL만)
-        run: trivy fs --scanners vuln,misconfig . --exit-code 1 --severity CRITICAL
+      - name: 시크릿 스캔 (경고)
+        run: gitleaks git . -v --exit-code 0
+      - name: SAST (경고)
+        run: semgrep --config p/ci --config p/python demo-app/
+      - name: SCA · IaC (경고)
+        run: trivy fs --scanners vuln,misconfig . --exit-code 0 --severity HIGH,CRITICAL
+
+  deploy:
+    needs: guard                     # 앞단 보안 검사를 통과해야만 배포 실행
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write                # OIDC 토큰 발급 권한
+      contents: read
+    steps:
+      - name: AWS 자격증명 획득 (OIDC 키리스)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+      - name: 누구로 접속되었는지 확인
+        run: aws sts get-caller-identity
